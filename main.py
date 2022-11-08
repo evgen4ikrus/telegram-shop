@@ -14,6 +14,16 @@ def get_moltin_access_token(client_id, client_secret):
     return access_token
 
 
+def get_products(moltin_access_token):
+    headers = {
+        'Authorization': f'Bearer {moltin_access_token}'
+    }
+    response = requests.get('https://api.moltin.com/pcm/products', headers=headers)
+    response.raise_for_status()
+    products = response.json()
+    return products
+
+
 def main():
     env = Env()
     env.read_env()
@@ -21,13 +31,7 @@ def main():
     motlin_client_secret = env('MOLTIN_CLIENT_SECRET')
 
     moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
-
-    headers = {
-        'Authorization': f'Bearer {moltin_access_token}'
-    }
-    response = requests.get('https://api.moltin.com/pcm/products', headers=headers)
-    response.raise_for_status()
-    print(response.json())
+    products = get_products(moltin_access_token)
 
 
 if __name__ == '__main__':
