@@ -2,16 +2,7 @@ import requests
 from environs import Env
 
 
-# def get_products(moltin_access_token):
-#     headers = {
-#         'Authorization': f'Bearer {moltin_access_token}',
-#     }
-#     response = requests.get('https://api.moltin.com/v2/products', headers=headers)
-#     response.raise_for_status()
-#     return response.json()
-
-
-def get_products(moltin_access_token):
+def get_all_products(moltin_access_token):
     headers = {
         'Authorization': f'Bearer {moltin_access_token}',
         'Content-Type': 'application/json',
@@ -41,7 +32,6 @@ def create_user_cart(moltin_access_token, cart_id):
     }
     response = requests.get(f'https://api.moltin.com/v2/carts/{cart_id}', headers=headers)
     response.raise_for_status()
-    return response.json()['data']
 
 
 def add_product_to_cart(moltin_access_token, product_id, cart_id, quantity):
@@ -63,7 +53,6 @@ def add_product_to_cart(moltin_access_token, product_id, cart_id, quantity):
         json=payload
     )
     response.raise_for_status()
-    return response.json()
 
 
 def get_cart_items(moltin_access_token, cart_id):
@@ -75,7 +64,7 @@ def get_cart_items(moltin_access_token, cart_id):
     url = f'https://api.moltin.com/v2/carts/{cart_id}/items'
     response = requests.get(url=url, headers=headers)
     response.raise_for_status()
-    return response.json()
+    return response.json()['data']
 
 
 def get_product(moltin_access_token, product_id):
@@ -98,16 +87,15 @@ def main():
     cart_id = 'abc'
 
     moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
-    products = get_products(moltin_access_token)
-    # print(products)
+    products = get_all_products(moltin_access_token)
+
     product = products[1]
     product_id = product['id']
-    print(product)
-    # get_product(moltin_access_token, product_id)
-    # print(create_user_cart(moltin_access_token, cart_id))
+    product = get_product(moltin_access_token, product_id)
+    create_user_cart(moltin_access_token, cart_id)
 
-    # add_product_to_cart(moltin_access_token, product_id, cart_id, 2)
-    # print(get_cart_items(moltin_access_token, cart_id))
+    # add_product_to_cart(moltin_access_token, product_id, cart_id, 1)
+    cart_items = get_cart_items(moltin_access_token, cart_id)
 
 
 if __name__ == '__main__':
