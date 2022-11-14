@@ -1,25 +1,27 @@
-import os
 import logging
+import os
+
 import redis
 from environs import Env
-
-
-from telegram.ext import Filters, Updater
-from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
+                          MessageHandler, Updater)
 
+from moltin_helpers import get_all_products, get_moltin_access_token
 
 _database = None
 logger = logging.getLogger('tg_bot')
 
 
 def start(bot, update):
-    keyboard = [[InlineKeyboardButton('Option 1', callback_data='1'),
-                 InlineKeyboardButton('Option 2', callback_data='2')],
-                [InlineKeyboardButton('Option 3', callback_data='3')]]
-
+    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
+    products = get_all_products(moltin_access_token)
+    keyboard = [
+        [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])] for product in products
+        ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text(text='Привет! Нажми на одну из кнопок:', reply_markup=reply_markup)
+    return 'BUTTON'
 
 
 def button(bot, update):
@@ -28,7 +30,7 @@ def button(bot, update):
     bot.edit_message_text(text='Нажата кнопка: {}'.format(query.data),
                           chat_id=query.message.chat_id,
                           message_id=query.message.message_id)
-    return 'START'
+    return 'BUTTON'
 
 
 def echo(bot, update):
@@ -80,6 +82,10 @@ if __name__ == '__main__':
     env = Env()
     env.read_env()
     token = env('TG_TOKEN')
+    moltin_client_id = env('MOLTIN_CLIENT_ID')
+    motlin_client_secret = env('MOLTIN_CLIENT_SECRET')
+    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
+
     updater = Updater(token)
     dispatcher = updater.dispatcher
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
