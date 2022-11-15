@@ -7,7 +7,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater)
 
-from moltin_helpers import get_all_products, get_moltin_access_token
+from moltin_helpers import get_all_products, get_moltin_access_token, get_product_by_id
+from format_message import create_product_description
 
 _database = None
 logger = logging.getLogger('tg_bot')
@@ -21,16 +22,17 @@ def start(bot, update):
         ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text(text='Привет! Нажми на одну из кнопок:', reply_markup=reply_markup)
-    return 'BUTTON'
+    return 'HANDLE_MENU'
 
 
-def button(bot, update):
+def handle_menu(bot, update):
+    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     query = update.callback_query
-
-    bot.edit_message_text(text='Нажата кнопка: {}'.format(query.data),
-                          chat_id=query.message.chat_id,
-                          message_id=query.message.message_id)
-    return 'BUTTON'
+    product_id = '{}'.format(query.data)
+    product = get_product_by_id(moltin_access_token, product_id)
+    message = create_product_description(product)
+    bot.edit_message_text(text=message, chat_id=query.message.chat_id, message_id=query.message.message_id)
+    return 'START'
 
 
 def echo(bot, update):
@@ -56,7 +58,7 @@ def handle_users_reply(bot, update):
 
     states_functions = {
         'START': start,
-        'BUTTON': button,
+        'HANDLE_MENU': handle_menu,
         'ECHO': echo
     }
     state_handler = states_functions[user_state]
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler('start', handle_users_reply))
-    updater.dispatcher.add_handler(CallbackQueryHandler(button))
+    updater.dispatcher.add_handler(CallbackQueryHandler(handle_menu))
     updater.start_polling()
     logger.info('TG бот запущен')
     updater.idle()
