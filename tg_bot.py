@@ -7,8 +7,10 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater)
 
-from moltin_helpers import get_all_products, get_moltin_access_token, get_product_by_id
 from format_message import create_product_description
+from moltin_helpers import (get_all_products, get_file_by_id,
+                            get_moltin_access_token, get_product_by_id,
+                            get_product_files)
 
 _database = None
 logger = logging.getLogger('tg_bot')
@@ -31,7 +33,15 @@ def handle_menu(bot, update):
     product_id = '{}'.format(query.data)
     product = get_product_by_id(moltin_access_token, product_id)
     message = create_product_description(product)
-    bot.edit_message_text(text=message, chat_id=query.message.chat_id, message_id=query.message.message_id)
+    product_files = get_product_files(moltin_access_token, product_id)
+    if product_files:
+        file_id = product_files[0].get('id')
+        file = get_file_by_id(moltin_access_token, file_id)
+        file_link = file.get('link').get('href')
+        bot.send_photo(chat_id=query.message.chat_id, caption=message, photo=file_link)
+        bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
+        return 'START'
+    bot.send_message(text=message, chat_id=query.message.chat_id)
     return 'START'
 
 
