@@ -44,7 +44,7 @@ def add_product_to_cart(moltin_access_token, product_id, cart_id, quantity):
         'data': {
             'id': product_id,
             'type': 'cart_item',
-            'quantity': quantity,
+            'quantity': int(quantity),
         }
     }
     response = requests.post(

@@ -8,7 +8,8 @@ from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater)
 
 from format_message import create_product_description
-from moltin_helpers import (get_all_products, get_file_by_id,
+from moltin_helpers import (add_product_to_cart, get_all_products,
+                            get_cart_items, get_file_by_id,
                             get_moltin_access_token, get_product_by_id,
                             get_product_files)
 
@@ -21,7 +22,7 @@ def get_menu_keyboard():
     products = get_all_products(moltin_access_token)
     keyboard = [
         [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])] for product in products
-        ]
+    ]
     return keyboard
 
 
@@ -39,7 +40,12 @@ def handle_menu(bot, update):
     product = get_product_by_id(moltin_access_token, product_id)
     message = create_product_description(product)
     product_files = get_product_files(moltin_access_token, product_id)
-    keyboard = [[InlineKeyboardButton('Назад', callback_data='Главное меню:')]]
+    keyboard = [
+        [InlineKeyboardButton('1 шт', callback_data=f'1 {product_id}'),
+         InlineKeyboardButton('3 шт', callback_data=f'3 {product_id}'),
+         InlineKeyboardButton('5 шт', callback_data=f'5 {product_id}')],
+        [InlineKeyboardButton('Назад', callback_data='Назад')]
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     if product_files:
         file_id = product_files[0].get('id')
@@ -54,11 +60,17 @@ def handle_menu(bot, update):
 
 def handle_description(bot, update):
     query = update.callback_query
-    keyboard = get_menu_keyboard()
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    message = '{}'.format(query.data)
-    bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
-    return 'HANDLE_MENU'
+    if query.data == 'Назад':
+        keyboard = get_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = 'Главное меню:'
+        bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
+        bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
+        return 'HANDLE_MENU'
+    command, product_id = query.data.split()
+    add_product_to_cart(moltin_access_token, product_id, query.message.chat_id, command)
+    update.callback_query.answer("Товар добавлен в корзину")
+    return 'HANDLE_DESCRIPTION'
 
 
 def handle_users_reply(bot, update):
