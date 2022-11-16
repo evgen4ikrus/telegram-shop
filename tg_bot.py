@@ -16,14 +16,19 @@ _database = None
 logger = logging.getLogger('tg_bot')
 
 
-def start(bot, update):
+def get_menu_keyboard():
     moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     products = get_all_products(moltin_access_token)
     keyboard = [
         [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])] for product in products
         ]
+    return keyboard
+
+
+def start(bot, update):
+    keyboard = get_menu_keyboard()
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(text='Привет! Нажми на одну из кнопок:', reply_markup=reply_markup)
+    update.message.reply_text(text='Главное меню:', reply_markup=reply_markup)
     return 'HANDLE_MENU'
 
 
@@ -34,21 +39,26 @@ def handle_menu(bot, update):
     product = get_product_by_id(moltin_access_token, product_id)
     message = create_product_description(product)
     product_files = get_product_files(moltin_access_token, product_id)
+    keyboard = [[InlineKeyboardButton('Назад', callback_data='Главное меню:')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     if product_files:
         file_id = product_files[0].get('id')
         file = get_file_by_id(moltin_access_token, file_id)
         file_link = file.get('link').get('href')
-        bot.send_photo(chat_id=query.message.chat_id, caption=message, photo=file_link)
+        bot.send_photo(chat_id=query.message.chat_id, caption=message, photo=file_link, reply_markup=reply_markup)
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
-        return 'START'
-    bot.send_message(text=message, chat_id=query.message.chat_id)
-    return 'START'
+        return 'HANDLE_DESCRIPTION'
+    bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
+    return 'HANDLE_DESCRIPTION'
 
 
-def echo(bot, update):
-    users_reply = update.message.text
-    update.message.reply_text(users_reply)
-    return 'ECHO'
+def handle_description(bot, update):
+    query = update.callback_query
+    keyboard = get_menu_keyboard()
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    message = '{}'.format(query.data)
+    bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
+    return 'HANDLE_MENU'
 
 
 def handle_users_reply(bot, update):
@@ -69,7 +79,7 @@ def handle_users_reply(bot, update):
     states_functions = {
         'START': start,
         'HANDLE_MENU': handle_menu,
-        'ECHO': echo
+        'HANDLE_DESCRIPTION': handle_description,
     }
     state_handler = states_functions[user_state]
     try:
