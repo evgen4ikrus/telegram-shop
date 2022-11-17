@@ -109,6 +109,16 @@ def get_file_by_id(moltin_access_token, file_id):
 #     return response.json()
 
 
+def delete_product_from_cart(moltin_access_token, cart_id, product_id):
+    headers = {
+        'Authorization': f'Bearer {moltin_access_token}',
+        'Content-Type': 'application/json',
+        'EP-Channel': 'web store'
+    }
+    response = requests.delete(f'https://api.moltin.com/v2/carts/{cart_id}/items/{product_id}', headers=headers)
+    response.raise_for_status()
+
+
 def main():
     env = Env()
     env.read_env()
@@ -120,6 +130,7 @@ def main():
 
     product = products[1]
     product_id = product['id']
+    cart_id = str(1774521104)
     # product = get_product_by_id(moltin_access_token, product_id)
     # create_user_cart(moltin_access_token, cart_id)
     # print(product)

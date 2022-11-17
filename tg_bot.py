@@ -7,9 +7,9 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater)
 
-from format_message import create_product_description, create_cart_description
-from moltin_helpers import (add_product_to_cart, get_all_products,
-                            get_cart_items, get_file_by_id,
+from format_message import create_cart_description, create_product_description
+from moltin_helpers import (add_product_to_cart, delete_product_from_cart,
+                            get_all_products, get_cart_items, get_file_by_id,
                             get_moltin_access_token, get_product_by_id,
                             get_product_files)
 
@@ -21,14 +21,19 @@ def get_menu_keyboard():
     moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     products = get_all_products(moltin_access_token)
     keyboard = [
-        [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])] for product in products
+        [InlineKeyboardButton(product.get('attributes').get('name'), callback_data=product.get('id'))]
+        for product in products
     ]
     keyboard.append([InlineKeyboardButton('Корзина', callback_data='Корзина')])
     return keyboard
 
 
-def get_cart_keyboard():
-    keyboard = [[InlineKeyboardButton('В меню', callback_data='Меню')]]
+def get_cart_keyboard(cart_items):
+    keyboard = [
+        [InlineKeyboardButton(f"Убрать из корзины {item.get('name')}", callback_data=item.get('id'))]
+        for item in cart_items
+    ]
+    keyboard.append([InlineKeyboardButton('В меню', callback_data='Меню')])
     return keyboard
 
 
@@ -45,7 +50,7 @@ def handle_menu(bot, update):
     if query.data == 'Корзина':
         cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
         message = create_cart_description(cart_items)
-        keyboard = get_cart_keyboard()
+        keyboard = get_cart_keyboard(cart_items)
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
         return 'HANDLE_CART'
@@ -86,7 +91,7 @@ def handle_description(bot, update):
     if query.data == 'Корзина':
         cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
         message = create_cart_description(cart_items)
-        keyboard = get_cart_keyboard()
+        keyboard = get_cart_keyboard(cart_items)
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
         return 'HANDLE_CART'
@@ -97,6 +102,7 @@ def handle_description(bot, update):
 
 
 def handle_cart(bot, update):
+    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     query = update.callback_query
     if query.data == 'Меню':
         keyboard = get_menu_keyboard()
@@ -104,6 +110,14 @@ def handle_cart(bot, update):
         message = 'Главное меню:'
         bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
         return 'HANDLE_MENU'
+    delete_product_from_cart(moltin_access_token, query.message.chat_id, query.data)
+    cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
+    message = create_cart_description(cart_items)
+    keyboard = get_cart_keyboard(cart_items)
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.callback_query.answer("Товар удален из корзину")
+    bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
+    return 'HANDLE_CART'
 
 
 def handle_users_reply(bot, update):
