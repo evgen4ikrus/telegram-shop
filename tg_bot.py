@@ -33,6 +33,7 @@ def get_cart_keyboard(cart_items):
         [InlineKeyboardButton(f"Убрать из корзины {item.get('name')}", callback_data=item.get('id'))]
         for item in cart_items
     ]
+    keyboard.insert(0, [InlineKeyboardButton('Оплатить', callback_data='Оплатить')])
     keyboard.append([InlineKeyboardButton('В меню', callback_data='Меню')])
     return keyboard
 
@@ -110,6 +111,10 @@ def handle_cart(bot, update):
         message = 'Главное меню:'
         bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
         return 'HANDLE_MENU'
+    if query.data == 'Оплатить':
+        message = 'Пожалуйста введите Вашу электронную почту:'
+        bot.send_message(text=message, chat_id=query.message.chat_id)
+        return 'HANDLE_WAITING_EMAIL'
     delete_product_from_cart(moltin_access_token, query.message.chat_id, query.data)
     cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
     message = create_cart_description(cart_items)
@@ -118,6 +123,13 @@ def handle_cart(bot, update):
     update.callback_query.answer("Товар удален из корзину")
     bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
     return 'HANDLE_CART'
+
+
+def handle_watting_email(bot, update):
+    email = update.message.text
+    message = f'Вы прислали мне эту почту: {email}'
+    bot.send_message(text=message, chat_id=update.message.chat_id, reply_markup=reply_markup)
+    return 'HANDLE_WAITING_EMAIL'
 
 
 def handle_users_reply(bot, update):
@@ -140,6 +152,7 @@ def handle_users_reply(bot, update):
         'HANDLE_MENU': handle_menu,
         'HANDLE_DESCRIPTION': handle_description,
         'HANDLE_CART': handle_cart,
+        'HANDLE_WAITING_EMAIL': handle_watting_email,
     }
     state_handler = states_functions[user_state]
     try:
