@@ -7,7 +7,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater)
 
-from format_message import create_product_description
+from format_message import create_product_description, create_cart_description
 from moltin_helpers import (add_product_to_cart, get_all_products,
                             get_cart_items, get_file_by_id,
                             get_moltin_access_token, get_product_by_id,
@@ -23,6 +23,12 @@ def get_menu_keyboard():
     keyboard = [
         [InlineKeyboardButton(product['attributes']['name'], callback_data=product['id'])] for product in products
     ]
+    keyboard.append([InlineKeyboardButton('Корзина', callback_data='Корзина')])
+    return keyboard
+
+
+def get_cart_keyboard():
+    keyboard = [[InlineKeyboardButton('В меню', callback_data='Меню')]]
     return keyboard
 
 
@@ -34,8 +40,16 @@ def start(bot, update):
 
 
 def handle_menu(bot, update):
-    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     query = update.callback_query
+    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
+    if query.data == 'Корзина':
+        cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
+        message = create_cart_description(cart_items)
+        keyboard = get_cart_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'HANDLE_CART'
+    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     product_id = '{}'.format(query.data)
     product = get_product_by_id(moltin_access_token, product_id)
     message = create_product_description(product)
@@ -44,6 +58,7 @@ def handle_menu(bot, update):
         [InlineKeyboardButton('1 шт', callback_data=f'1 {product_id}'),
          InlineKeyboardButton('3 шт', callback_data=f'3 {product_id}'),
          InlineKeyboardButton('5 шт', callback_data=f'5 {product_id}')],
+        [InlineKeyboardButton('Корзина', callback_data='Корзина')],
         [InlineKeyboardButton('Назад', callback_data='Назад')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -59,6 +74,7 @@ def handle_menu(bot, update):
 
 
 def handle_description(bot, update):
+    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     query = update.callback_query
     if query.data == 'Назад':
         keyboard = get_menu_keyboard()
@@ -67,10 +83,27 @@ def handle_description(bot, update):
         bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         return 'HANDLE_MENU'
+    if query.data == 'Корзина':
+        cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
+        message = create_cart_description(cart_items)
+        keyboard = get_cart_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'HANDLE_CART'
     command, product_id = query.data.split()
     add_product_to_cart(moltin_access_token, product_id, query.message.chat_id, command)
     update.callback_query.answer("Товар добавлен в корзину")
     return 'HANDLE_DESCRIPTION'
+
+
+def handle_cart(bot, update):
+    query = update.callback_query
+    if query.data == 'Меню':
+        keyboard = get_menu_keyboard()
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        message = 'Главное меню:'
+        bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
+        return 'HANDLE_MENU'
 
 
 def handle_users_reply(bot, update):
@@ -92,6 +125,7 @@ def handle_users_reply(bot, update):
         'START': start,
         'HANDLE_MENU': handle_menu,
         'HANDLE_DESCRIPTION': handle_description,
+        'HANDLE_CART': handle_cart,
     }
     state_handler = states_functions[user_state]
     try:
@@ -118,7 +152,6 @@ if __name__ == '__main__':
     token = env('TG_TOKEN')
     moltin_client_id = env('MOLTIN_CLIENT_ID')
     motlin_client_secret = env('MOLTIN_CLIENT_SECRET')
-    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
 
     updater = Updater(token)
     dispatcher = updater.dispatcher
