@@ -128,7 +128,7 @@ def handle_cart(bot, update):
 def handle_watting_email(bot, update):
     email = update.message.text
     message = f'Вы прислали мне эту почту: {email}'
-    bot.send_message(text=message, chat_id=update.message.chat_id, reply_markup=reply_markup)
+    bot.send_message(text=message, chat_id=update.message.chat_id)
     return 'HANDLE_WAITING_EMAIL'
 
 
