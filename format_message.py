@@ -1,7 +1,8 @@
-# Доделать получение цены и передать сообщение при клике на товар
 def create_product_description(product):
-    text = f'''{product.get('attributes').get('name')}\n
-{product.get('attributes').get('description')}'''
+    description = product.get('attributes').get('description')
+    title = product.get('attributes').get('name')
+    price = product.get('attributes').get('price').get('USD').get('amount') * 0.01
+    text = f"{title}\n\n{price}$ за кг.\n\n{description}"
     return text
 
 
@@ -12,8 +13,9 @@ def create_cart_description(cart_items):
         one_for_price = item.get('unit_price').get('amount') * 0.01
         price = one_for_price * item.get("quantity")
         total_price += price
-        cart_description += f'''{item.get("name")}
-{item.get("description")}
-{item.get("quantity")}шт. за {price}$ ({one_for_price}$ за шт.)\n\n'''
+        title = item.get('name')
+        description = item.get('description')
+        quantity = item.get('quantity')
+        cart_description += f"{title}\n{description}\n{quantity}кг. за {price}$ ({one_for_price}$ за кг.)\n\n"
     cart_description += f'Общая цена: {total_price}$'
     return cart_description

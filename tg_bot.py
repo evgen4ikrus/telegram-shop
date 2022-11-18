@@ -61,9 +61,9 @@ def handle_menu(bot, update):
     message = create_product_description(product)
     product_files = get_product_files(moltin_access_token, product_id)
     keyboard = [
-        [InlineKeyboardButton('1 шт', callback_data=f'1 {product_id}'),
-         InlineKeyboardButton('3 шт', callback_data=f'3 {product_id}'),
-         InlineKeyboardButton('5 шт', callback_data=f'5 {product_id}')],
+        [InlineKeyboardButton('1 кг', callback_data=f'1 {product_id}'),
+         InlineKeyboardButton('3 кг', callback_data=f'3 {product_id}'),
+         InlineKeyboardButton('5 кг', callback_data=f'5 {product_id}')],
         [InlineKeyboardButton('Корзина', callback_data='Корзина')],
         [InlineKeyboardButton('Назад', callback_data='Назад')]
     ]
@@ -127,7 +127,7 @@ def handle_cart(bot, update):
 
 def handle_watting_email(bot, update):
     user = update.effective_user
-    name = f"{user.first_name} id:{user.id}"
+    name = f"{user.first_name} i3ww233d:{user.id}"
     email = update.message.text
     moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     create_customer(moltin_access_token, name, email)
