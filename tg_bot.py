@@ -1,5 +1,8 @@
 import logging
 import os
+from log_helpers import TelegramLogsHandler
+import telegram
+from requests.exceptions import HTTPError
 
 import redis
 from environs import Env
@@ -130,7 +133,12 @@ def handle_watting_email(bot, update):
     name = f"{user.first_name} id:{user.id}"
     email = update.message.text
     moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
-    create_customer(moltin_access_token, name, email)
+    try:
+        create_customer(moltin_access_token, name, email)
+    except HTTPError:
+        message = 'Произошла ошибка, возможно вы прислали несуществующий email. Попробуйте повторить попытку:'
+        bot.send_message(text=message, chat_id=update.message.chat_id)
+        return 'HANDLE_WAITING_EMAIL'
     message = f'Вы прислали мне эту эл. почту: {email}'
     bot.send_message(text=message, chat_id=update.message.chat_id)
     return 'HANDLE_WAITING_EMAIL'
@@ -180,16 +188,28 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
     env = Env()
     env.read_env()
-    token = env('TG_TOKEN')
+    tg_token = env('TG_TOKEN')
     moltin_client_id = env('MOLTIN_CLIENT_ID')
     motlin_client_secret = env('MOLTIN_CLIENT_SECRET')
+    tg_chat_id = env('TG_CHAT_ID')
+    bot = telegram.Bot(token=tg_token)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(TelegramLogsHandler(bot, tg_chat_id))
+    logger.info('Бот для логов запущен')
 
-    updater = Updater(token)
+    updater = Updater(tg_token)
     dispatcher = updater.dispatcher
-    dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
-    dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
-    dispatcher.add_handler(CommandHandler('start', handle_users_reply))
-    updater.dispatcher.add_handler(CallbackQueryHandler(handle_menu))
-    updater.start_polling()
-    logger.info('TG бот запущен')
-    updater.idle()
+
+    while True:
+
+        try:
+            dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
+            dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
+            dispatcher.add_handler(CommandHandler('start', handle_users_reply))
+            updater.dispatcher.add_handler(CallbackQueryHandler(handle_menu))
+            updater.start_polling()
+            logger.info('TG бот запущен')
+            updater.idle()
+
+        except Exception:
+            logger.exception('Произошла ошибка:')
