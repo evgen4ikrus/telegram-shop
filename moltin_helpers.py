@@ -4,8 +4,6 @@ import requests
 def get_all_products(moltin_access_token):
     headers = {
         'Authorization': f'Bearer {moltin_access_token}',
-        'Content-Type': 'application/json',
-        'EP-Channel': 'web store'
     }
     response = requests.get('https://api.moltin.com/catalog/products/', headers=headers)
     response.raise_for_status()
@@ -57,8 +55,6 @@ def add_product_to_cart(moltin_access_token, product_id, cart_id, quantity):
 def get_cart_items(moltin_access_token, cart_id):
     headers = {
         'Authorization': f'Bearer {moltin_access_token}',
-        'Content-Type': 'application/json',
-        'EP-Channel': 'web store'
     }
     url = f'https://api.moltin.com/v2/carts/{cart_id}/items'
     response = requests.get(url=url, headers=headers)
@@ -69,8 +65,6 @@ def get_cart_items(moltin_access_token, cart_id):
 def get_product_by_id(moltin_access_token, product_id):
     headers = {
         'Authorization': f'Bearer {moltin_access_token}',
-        'Content-Type': 'application/json',
-        'EP-Channel': 'web store'
     }
     response = requests.get(f'https://api.moltin.com/catalog/products/{product_id}', headers=headers)
     response.raise_for_status()
@@ -80,7 +74,6 @@ def get_product_by_id(moltin_access_token, product_id):
 def get_product_files(moltin_access_token, product_id):
     headers = {
         'Authorization': f'Bearer {moltin_access_token}',
-        'Content-Type': 'application/json',
     }
     response = requests.get(f'https://api.moltin.com/pcm/products/{product_id}/relationships/files', headers=headers)
     response.raise_for_status()
@@ -99,8 +92,6 @@ def get_file_by_id(moltin_access_token, file_id):
 def delete_product_from_cart(moltin_access_token, cart_id, product_id):
     headers = {
         'Authorization': f'Bearer {moltin_access_token}',
-        'Content-Type': 'application/json',
-        'EP-Channel': 'web store'
     }
     response = requests.delete(f'https://api.moltin.com/v2/carts/{cart_id}/items/{product_id}', headers=headers)
     response.raise_for_status()

@@ -127,7 +127,7 @@ def handle_cart(bot, update):
 
 def handle_watting_email(bot, update):
     user = update.effective_user
-    name = f"{user.first_name} i3ww233d:{user.id}"
+    name = f"{user.first_name} id:{user.id}"
     email = update.message.text
     moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     create_customer(moltin_access_token, name, email)
