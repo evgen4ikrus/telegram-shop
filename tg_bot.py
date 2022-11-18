@@ -1,20 +1,21 @@
 import logging
 import os
-from log_helpers import TelegramLogsHandler
-import telegram
-from requests.exceptions import HTTPError
 
 import redis
+import telegram
 from environs import Env
+from requests.exceptions import HTTPError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (CallbackQueryHandler, CommandHandler, Filters,
                           MessageHandler, Updater)
 
 from format_message import create_cart_description, create_product_description
-from moltin_helpers import (add_product_to_cart, delete_product_from_cart,
-                            get_all_products, get_cart_items, get_file_by_id,
+from log_helpers import TelegramLogsHandler
+from moltin_helpers import (add_product_to_cart, create_customer,
+                            delete_product_from_cart, get_all_products,
+                            get_cart_items, get_file_by_id,
                             get_moltin_access_token, get_product_by_id,
-                            get_product_files, create_customer)
+                            get_product_files)
 
 _database = None
 logger = logging.getLogger('tg_bot')
