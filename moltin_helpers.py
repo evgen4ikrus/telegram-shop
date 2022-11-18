@@ -119,6 +119,22 @@ def delete_product_from_cart(moltin_access_token, cart_id, product_id):
     response.raise_for_status()
 
 
+def create_customer(moltin_access_token, name, email):
+    headers = {
+        'Authorization': f'Bearer {moltin_access_token}',
+        'Content-Type': 'application/json',
+    }
+    payload = {
+        'data': {
+            'name': name,
+            'email': email,
+            'type': 'customer',
+        }
+    }
+    response = requests.post('https://api.moltin.com/v2/customers', headers=headers, json=payload)
+    response.raise_for_status()
+
+
 def main():
     env = Env()
     env.read_env()
@@ -126,11 +142,11 @@ def main():
     motlin_client_secret = env('MOLTIN_CLIENT_SECRET')
 
     moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
-    products = get_all_products(moltin_access_token)
+    # products = get_all_products(moltin_access_token)
 
-    product = products[1]
-    product_id = product['id']
-    cart_id = str(1774521104)
+    # product = products[1]
+    # product_id = product['id']
+    # cart_id = str(1774521104)
     # product = get_product_by_id(moltin_access_token, product_id)
     # create_user_cart(moltin_access_token, cart_id)
     # print(product)

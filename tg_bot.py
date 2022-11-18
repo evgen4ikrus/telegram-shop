@@ -11,7 +11,7 @@ from format_message import create_cart_description, create_product_description
 from moltin_helpers import (add_product_to_cart, delete_product_from_cart,
                             get_all_products, get_cart_items, get_file_by_id,
                             get_moltin_access_token, get_product_by_id,
-                            get_product_files)
+                            get_product_files, create_customer)
 
 _database = None
 logger = logging.getLogger('tg_bot')
@@ -126,8 +126,12 @@ def handle_cart(bot, update):
 
 
 def handle_watting_email(bot, update):
+    user = update.effective_user
+    name = f"{user.first_name} id:{user.id}"
     email = update.message.text
-    message = f'Вы прислали мне эту почту: {email}'
+    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
+    create_customer(moltin_access_token, name, email)
+    message = f'Вы прислали мне эту эл. почту: {email}'
     bot.send_message(text=message, chat_id=update.message.chat_id)
     return 'HANDLE_WAITING_EMAIL'
 
