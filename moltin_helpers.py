@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime
 
 
 def get_all_products(moltin_access_token):
@@ -11,7 +12,12 @@ def get_all_products(moltin_access_token):
     return products
 
 
-def get_moltin_access_token(client_id, client_secret):
+def get_moltin_access_token(client_id, client_secret, access_token, token_created_at):
+    if access_token:
+        left_time = token_created_at - datetime.now().timestamp()
+        minimum_seconds = 30
+        if left_time > minimum_seconds:
+            return access_token, token_created_at
     data = {
         'client_id': client_id,
         'client_secret': client_secret,
@@ -19,8 +25,10 @@ def get_moltin_access_token(client_id, client_secret):
     }
     response = requests.post('https://api.moltin.com/oauth/access_token', data=data)
     response.raise_for_status()
-    access_token = response.json()['access_token']
-    return access_token
+    raw_response = response.json()
+    new_access_token = raw_response['access_token']
+    token_created_at = raw_response['expires']
+    return new_access_token, token_created_at
 
 
 def create_user_cart(moltin_access_token, cart_id):

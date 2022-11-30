@@ -20,10 +20,14 @@ from moltin_helpers import (add_product_to_cart, create_customer,
 _database = None
 logger = logging.getLogger('tg_bot')
 
+MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT = None, None
+
 
 def get_menu_keyboard():
-    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
-    products = get_all_products(moltin_access_token)
+    global MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT
+    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT = get_moltin_access_token(moltin_client_id, motlin_client_secret,
+                                                                    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT)
+    products = get_all_products(MOTLIN_ACCESS_TOKEN)
     keyboard = [
         [InlineKeyboardButton(product.get('attributes').get('name'), callback_data=product.get('id'))]
         for product in products
@@ -50,20 +54,21 @@ def start(bot, update):
 
 
 def handle_menu(bot, update):
+    global MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT
+    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT = get_moltin_access_token(moltin_client_id, motlin_client_secret,
+                                                                    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT)
     query = update.callback_query
-    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     if query.data == 'Корзина':
-        cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
+        cart_items = get_cart_items(MOTLIN_ACCESS_TOKEN, query.message.chat_id)
         message = create_cart_description(cart_items)
         keyboard = get_cart_keyboard(cart_items)
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
         return 'HANDLE_CART'
-    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
     product_id = '{}'.format(query.data)
-    product = get_product_by_id(moltin_access_token, product_id)
+    product = get_product_by_id(MOTLIN_ACCESS_TOKEN, product_id)
     message = create_product_description(product)
-    product_files = get_product_files(moltin_access_token, product_id)
+    product_files = get_product_files(MOTLIN_ACCESS_TOKEN, product_id)
     keyboard = [
         [InlineKeyboardButton('1 кг', callback_data=f'1 {product_id}'),
          InlineKeyboardButton('3 кг', callback_data=f'3 {product_id}'),
@@ -74,7 +79,7 @@ def handle_menu(bot, update):
     reply_markup = InlineKeyboardMarkup(keyboard)
     if product_files:
         file_id = product_files[0].get('id')
-        file = get_file_by_id(moltin_access_token, file_id)
+        file = get_file_by_id(MOTLIN_ACCESS_TOKEN, file_id)
         file_link = file.get('link').get('href')
         bot.send_photo(chat_id=query.message.chat_id, caption=message, photo=file_link, reply_markup=reply_markup)
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
@@ -84,7 +89,9 @@ def handle_menu(bot, update):
 
 
 def handle_description(bot, update):
-    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
+    global MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT
+    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT = get_moltin_access_token(moltin_client_id, motlin_client_secret,
+                                                                    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT)
     query = update.callback_query
     if query.data == 'Назад':
         keyboard = get_menu_keyboard()
@@ -94,20 +101,22 @@ def handle_description(bot, update):
         bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
         return 'HANDLE_MENU'
     if query.data == 'Корзина':
-        cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
+        cart_items = get_cart_items(MOTLIN_ACCESS_TOKEN, query.message.chat_id)
         message = create_cart_description(cart_items)
         keyboard = get_cart_keyboard(cart_items)
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.send_message(text=message, chat_id=query.message.chat_id, reply_markup=reply_markup)
         return 'HANDLE_CART'
     command, product_id = query.data.split()
-    add_product_to_cart(moltin_access_token, product_id, query.message.chat_id, command)
+    add_product_to_cart(MOTLIN_ACCESS_TOKEN, product_id, query.message.chat_id, command)
     update.callback_query.answer("Товар добавлен в корзину")
     return 'HANDLE_DESCRIPTION'
 
 
 def handle_cart(bot, update):
-    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
+    global MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT
+    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT = get_moltin_access_token(moltin_client_id, motlin_client_secret,
+                                                                    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT)
     query = update.callback_query
     if query.data == 'Меню':
         keyboard = get_menu_keyboard()
@@ -119,8 +128,8 @@ def handle_cart(bot, update):
         message = 'Пожалуйста введите Вашу электронную почту:'
         bot.send_message(text=message, chat_id=query.message.chat_id)
         return 'HANDLE_WAITING_EMAIL'
-    delete_product_from_cart(moltin_access_token, query.message.chat_id, query.data)
-    cart_items = get_cart_items(moltin_access_token, query.message.chat_id)
+    delete_product_from_cart(MOTLIN_ACCESS_TOKEN, query.message.chat_id, query.data)
+    cart_items = get_cart_items(MOTLIN_ACCESS_TOKEN, query.message.chat_id)
     message = create_cart_description(cart_items)
     keyboard = get_cart_keyboard(cart_items)
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -130,12 +139,14 @@ def handle_cart(bot, update):
 
 
 def handle_watting_email(bot, update):
+    global MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT
     user = update.effective_user
     name = f"{user.first_name} id:{user.id}"
     email = update.message.text
-    moltin_access_token = get_moltin_access_token(moltin_client_id, motlin_client_secret)
+    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT = get_moltin_access_token(moltin_client_id, motlin_client_secret,
+                                                                    MOTLIN_ACCESS_TOKEN, TOKEN_CREATED_AT)
     try:
-        create_customer(moltin_access_token, name, email)
+        create_customer(MOTLIN_ACCESS_TOKEN, name, email)
     except HTTPError:
         message = 'Произошла ошибка, возможно вы прислали несуществующий email. Попробуйте повторить попытку:'
         bot.send_message(text=message, chat_id=update.message.chat_id)
